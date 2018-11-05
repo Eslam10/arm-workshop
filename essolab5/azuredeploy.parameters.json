@@ -1,0 +1,23 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "value": "esso"
+        },
+        "adminPassword": {
+            "reference": {
+                "keyVault": {
+                    "id": "/subscriptions/98c0bab3-5aa6-4e80-a54b-2a3b2583a13a/resourceGroups/keyVaults/providers/Microsoft.KeyVault/vaults/essokeyvault"
+                },
+                "secretName": "ubuntuDefaultPassword"
+            }
+        },
+        "vnetName": {
+            "value": "ubuntuVnet"
+        },
+        "subnetName": {
+            "value": "ubuntuSubnet"
+        }
+    }
+}

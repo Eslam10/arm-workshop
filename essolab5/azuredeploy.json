@@ -8,6 +8,14 @@
                 "description": "User name for the Virtual Machine."
             }
         },
+        "numberOfDataDisks": {
+            "type": "int",
+            "defaultValue": "1",
+            "maxValue": 2,
+            "metadata": {
+                "description": "Number of data disks for the virtual machine"
+            }
+        },
         "adminPassword": {
             "type": "securestring",
             "metadata": {
@@ -18,8 +26,7 @@
             "type": "string",
             "metadata": {
                 "description": "Name for the virtual machine"
-            },
-            "defaultValue": "myUbuntuVm"
+            }
         },
         "dnsLabelPrefix": {
             "type": "string",
@@ -39,14 +46,6 @@
             ],
             "metadata": {
                 "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version."
-            }
-        },
-        "numberOfDataDisks": {
-           "type": "int",
-           "defaultValue": 1,
-           "maxValue": 2,
-           "metadata": {
-                "description": "Number of data disks for the virtual machine"
             }
         },
         "vnetName": {
@@ -78,10 +77,7 @@
         }
     },
     "variables": {
-        "pip?": "[if(empty(parameters('dnsLabelPrefix')), bool('false'), bool('true'))]",
-        "pipObject": {
-            "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('pipName'))]"
-        },
+        "pip?": "[not(empty(parameters('dnsLabelPrefix')))]",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks/', parameters('vnetName'))]",
         "subnetRef": "[concat(variables('vnetID'), '/subnets/', parameters('subnetName'))]",
         "nicName": "[concat(parameters('vmName'), '-nic')]",
@@ -92,12 +88,14 @@
         "imageOffer": "UbuntuServer",
         "storageAccountType": "Standard_LRS",
         "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'salinuxvm')]",
-        "vmId": "[resourceId('Microsoft.Compute/virtualMachines/', parameters('vmName'))]"
+        "pipObject": {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('pipName'))]"
+        }
     },
     "resources": [
         {
-            "name": "[variables('storageAccountName')]",
             "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storageAccountName')]",
             "apiVersion": "2017-06-01",
             "location": "[resourceGroup().location]",
             "sku": {
@@ -108,9 +106,9 @@
         },
         {
             "condition": "[variables('pip?')]",
-            "name": "[variables('pipName')]",
-            "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2017-06-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('pipName')]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "publicIPAllocationMethod": "[variables('pipType')]",
@@ -120,9 +118,9 @@
             }
         },
         {
-            "name": "[parameters('vnetName')]",
-            "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2017-06-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vnetName')]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "addressSpace": {
@@ -141,9 +139,9 @@
             }
         },
         {
-            "name": "[variables('nicName')]",
-            "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2017-06-01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('nicName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses/', variables('pipName'))]",
@@ -165,9 +163,9 @@
             }
         },
         {
-            "name": "[parameters('vmName')]",
-            "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2017-03-30",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('vmName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
@@ -193,18 +191,15 @@
                         "name": "[concat(parameters('vmName'), '-osDisk')]",
                         "createOption": "FromImage"
                     },
-                    "copy": [
-                        {
-                            "name": "dataDisks",
-                            "count": "[parameters('numberofDataDisks')]",
-                            "input": {
-                                "name": "[concat(parameters('vmName'), '-dataDisk', padLeft(copyIndex('dataDisks'), 2, '0'))]",
-                                "lun": "[copyIndex('dataDisks')]",
-                                "createOption": "Empty",
-                                "diskSizeGB": 1023
-                            }
+                    "copy": [{
+                        "name": "dataDisks",
+                        "count": "[parameters('numberofDataDisks')]",
+                        "input": {
+                          "name": "[concat(parameters('vmName'), '-dataDisk', padLeft(copyIndex('dataDisks'), 2, '0'))]",
+                          "lun": "[copyIndex('dataDisks')]",
+                          "createOption": "Empty" 
                         }
-                    ]
+                      }]
                 },
                 "networkProfile": {
                     "networkInterfaces": [
@@ -222,10 +217,5 @@
             }
         }
     ],
-    "outputs": {
-        "osDiskId": {
-            "type": "string",
-            "value": "[reference(variables('vmId')).storageProfile.osDisk.managedDisk.id]"
-        }
-    }
+    "outputs": {}
 }
